@@ -394,6 +394,7 @@ function renderTable() {
       (l.name && l.name.toLowerCase().includes(q)) ||
       (l.phone && l.phone.toLowerCase().includes(q)) ||
       (l.category && l.category.toLowerCase().includes(q)) ||
+      (l.pincode && l.pincode.toLowerCase().includes(q)) ||
       (l.address && l.address.toLowerCase().includes(q)) ||
       (l.email && l.email.toLowerCase().includes(q))
     );
@@ -491,6 +492,12 @@ function renderTable() {
       </a>`;
     }
 
+    // PIN / Postal Code badge
+    let pincodeBadge = '<span style="color: var(--text-tertiary); font-size: 11px;">-</span>';
+    if (lead.pincode && lead.pincode !== 'N/A' && lead.pincode !== 'Not Listed') {
+      pincodeBadge = `<span class="badge-pincode" title="PIN / Postal Code"><i data-lucide="map-pin" style="width: 11px; height: 11px;"></i> ${escapeHtml(lead.pincode)}</span>`;
+    }
+
     tr.innerHTML = `
       <td style="color: var(--text-tertiary); font-size: 12px; font-weight: 600;">${idx + 1}</td>
       <td>
@@ -502,6 +509,7 @@ function renderTable() {
       <td>${webBadge}</td>
       <td>${profileBadge}</td>
       <td>${ratingDisplay}</td>
+      <td>${pincodeBadge}</td>
       <td><div class="address-text">${escapeHtml(lead.address)}</div></td>
       <td style="text-align: center;">${mapsLink}</td>
     `;
@@ -530,6 +538,7 @@ openGSheetsBtn.addEventListener('click', () => {
     "Has Website?",
     "Website URL",
     "Google Profile Status",
+    "PIN / Postal Code",
     "Rating",
     "Reviews Count",
     "Full Address",
@@ -546,6 +555,7 @@ openGSheetsBtn.addEventListener('click', () => {
     l.has_website || 'NO',
     (l.website === 'None (Opportunity)') ? '' : (l.website || ''),
     l.profile_status || '',
+    l.pincode || 'N/A',
     l.rating || '',
     l.reviews_count || '',
     (l.address || '').replace(/[\t\n]/g, ' '),

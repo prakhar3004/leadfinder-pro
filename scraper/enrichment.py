@@ -304,8 +304,44 @@ def generate_whatsapp_link(clean_phone: Optional[str], business_name: str) -> Op
     else:
         return None
 
-    greeting = f"Hello {business_name}, we found your business listing and would like to connect regarding your services."
-    return f"https://wa.me/{num}?text={urllib.parse.quote(greeting)}"
+def extract_pincode(address: str, fallback: str = "") -> str:
+    """
+    Extracts 6-digit Indian PIN codes, US ZIP codes, UK postal codes, and Canadian postal codes
+    from raw address strings or Google Maps detail panes.
+    """
+    if not address and not fallback:
+        return ""
+    text = f"{address} {fallback}".strip()
+    if not text:
+        return ""
+
+    # 1. Indian 6-digit PIN code (e.g. 400050, 110001, 201301, 400 050)
+    in_match = re.search(r'(?:pin(?:code)?[:\s\-]*)?\b([1-9][0-9]{2})\s?([0-9]{3})\b', text, re.IGNORECASE)
+    if in_match:
+        digits = in_match.group(1) + in_match.group(2)
+        start = in_match.start()
+        end = in_match.end()
+        before_is_digit = start > 0 and text[start-1].isdigit()
+        after_is_digit = end < len(text) and text[end].isdigit()
+        if not before_is_digit and not after_is_digit:
+            return digits
+
+    # 2. UK Postal Code: e.g. SW1A 1AA, EC1A 1BB
+    uk_match = re.search(r'\b([A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})\b', text, re.IGNORECASE)
+    if uk_match:
+        return uk_match.group(1).upper()
+
+    # 3. Canadian Postal Code: e.g. K1A 0B1
+    ca_match = re.search(r'\b([A-Z][0-9][A-Z]\s?[0-9][A-Z][0-9])\b', text, re.IGNORECASE)
+    if ca_match:
+        return ca_match.group(1).upper()
+
+    # 4. US Zip code: e.g. 90210 or 10001-1234
+    us_match = re.search(r'\b([0-9]{5}(?:-[0-9]{4})?)\b', text)
+    if us_match:
+        return us_match.group(1)
+
+    return ""
 
 class DeduplicationEngine:
     """

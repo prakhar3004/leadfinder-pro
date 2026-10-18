@@ -14,6 +14,7 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 import io
+import csv
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -240,6 +241,7 @@ def format_lead_sheet(ws, title, leads, header_fill, header_font, yes_fill, yes_
         "Has Website?",
         "Website URL",
         "Profile Status",
+        "PIN / Postal Code",
         "Rating",
         "Reviews Count",
         "Full Address",
@@ -278,6 +280,7 @@ def format_lead_sheet(ws, title, leads, header_fill, header_font, yes_fill, yes_
             has_web,
             web_url,
             lead.get("profile_status", "Claimed"),
+            lead.get("pincode", "N/A"),
             lead.get("rating", ""),
             lead.get("reviews_count", ""),
             lead.get("address", ""),
@@ -317,8 +320,12 @@ def format_lead_sheet(ws, title, leads, header_fill, header_font, yes_fill, yes_
                 c.hyperlink = web_url
                 c.font = link_font
 
+            # PIN Code formatting
+            if col_idx == 10:
+                c.alignment = Alignment(horizontal="center", vertical="center")
+
             # Maps Link formatting
-            if col_idx == 13 and lead.get("maps_url", "").startswith("http"):
+            if col_idx == 14 and lead.get("maps_url", "").startswith("http"):
                 c.hyperlink = lead.get("maps_url")
                 c.value = "View on Maps"
                 c.font = link_font
@@ -406,26 +413,50 @@ async def export_csv(job_id: str):
     if not job.leads:
         raise HTTPException(status_code=400, detail="No leads collected for this job yet.")
 
-    df = pd.DataFrame(job.leads)
-    rename_map = {
-        "index": "S.No",
-        "name": "Business Name",
-        "category": "Category",
-        "phone": "Phone Number",
-        "whatsapp_url": "WhatsApp Direct Link",
-        "email": "Email Address",
-        "has_website": "Has Website?",
-        "website": "Website URL",
-        "profile_status": "Google Profile Status",
-        "rating": "Rating",
-        "reviews_count": "Reviews Count",
-        "address": "Full Address",
-        "maps_url": "Google Maps Link"
-    }
-    df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
-
     csv_buffer = io.StringIO()
-    df.to_csv(csv_buffer, index=False, encoding="utf-8-sig")
+    writer = csv.writer(csv_buffer)
+    writer.writerow([
+        "S.No",
+        "Business Name",
+        "Category",
+        "Phone Number",
+        "WhatsApp Direct Link",
+        "Email Address",
+        "Has Website?",
+        "Website URL",
+        "Google Profile Status",
+        "PIN / Postal Code",
+        "Rating",
+        "Reviews Count",
+        "Full Address",
+        "Google Maps Link"
+    ])
+
+    for i, lead in enumerate(job.leads, start=1):
+        email_val = lead.get("email", "")
+        if email_val in ("Scanning...", "Not Available"):
+            email_val = ""
+        web_val = lead.get("website", "")
+        if web_val == "None (Opportunity)":
+            web_val = ""
+
+        writer.writerow([
+            i,
+            lead.get("name", ""),
+            lead.get("category", ""),
+            lead.get("phone", ""),
+            lead.get("whatsapp_url", ""),
+            email_val,
+            lead.get("has_website", "NO"),
+            web_val,
+            lead.get("profile_status", "Claimed"),
+            lead.get("pincode", "N/A"),
+            lead.get("rating", ""),
+            lead.get("reviews_count", ""),
+            lead.get("address", ""),
+            lead.get("maps_url", "")
+        ])
+
     csv_buffer.seek(0)
 
     clean_business = "".join(c for c in job.business_type if c.isalnum() or c in (' ', '_')).rstrip().replace(' ', '_')

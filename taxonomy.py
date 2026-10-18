@@ -129,6 +129,23 @@ POPULAR_LOCATIONS = {
         "Kolkata, West Bengal",
         "Chennai, Tamil Nadu"
     ],
+    "📍 India - Targeted PIN Codes & Hubs": [
+        "Mumbai - 400001 (Fort / South Mumbai)",
+        "Mumbai - 400050 (Bandra West)",
+        "Mumbai - 400069 (Andheri East MIDC)",
+        "Delhi - 110001 (Connaught Place)",
+        "Delhi - 110020 (Okhla Industrial Area)",
+        "Bengaluru - 560001 (CBD / MG Road)",
+        "Bengaluru - 560058 (Peenya Industrial Estate)",
+        "Noida - 201301 (Sector 62/63 Commercial)",
+        "Gurugram - 122016 (Cyber City / Udyog Vihar)",
+        "Surat - 395002 (Textile & Diamond Market)",
+        "Kanpur - 208001 (Leather & Trading Hub)",
+        "Jaipur - 302001 (Johari Bazar & Gems)",
+        "Ludhiana - 141003 (Industrial Area Hosiery)",
+        "Ahmedabad - 380001 (Cloth Market & Trade)",
+        "Pune - 411026 (Bhosari / Pimpri MIDC)"
+    ],
     "🏭 India - Industrial & Commercial Hubs": [
         "Surat, Gujarat",
         "Kanpur, Uttar Pradesh",

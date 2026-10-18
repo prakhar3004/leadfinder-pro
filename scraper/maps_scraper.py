@@ -10,6 +10,7 @@ from scraper.enrichment import (
     find_website_email,
     generate_whatsapp_link,
     clean_and_validate_phone,
+    extract_pincode,
     DeduplicationEngine
 )
 
@@ -454,7 +455,16 @@ class GoogleMapsScraper:
                 aria = await addr_aria.first.get_attribute("aria-label") or ""
                 address = aria.replace("Address: ", "").replace("address: ", "").strip()
 
-        # 8. Rating & Review Count
+        # 8. Postal / PIN Code Extraction
+        pincode = extract_pincode(address)
+        if not pincode:
+            try:
+                pane_text = await page.locator('div[role="main"], div.m6QErb').first.inner_text()
+                pincode = extract_pincode("", pane_text)
+            except Exception:
+                pass
+
+        # 9. Rating & Review Count
         rating = "N/A"
         reviews_count = "0"
         rating_box = page.locator('div.F7nice')
@@ -471,7 +481,7 @@ class GoogleMapsScraper:
                 if rev_aria:
                     reviews_count = rev_aria.replace("reviews", "").replace("review", "").strip()
 
-        # 9. Social Links in Google Maps Pane
+        # 10. Social Links in Google Maps Pane
         socials = {}
         try:
             social_links = await page.locator('a[href*="facebook.com"], a[href*="instagram.com"], a[href*="linkedin.com"]').all()
@@ -486,7 +496,7 @@ class GoogleMapsScraper:
         except Exception:
             pass
 
-        # 10. WhatsApp Link
+        # 11. WhatsApp Link
         whatsapp_url = generate_whatsapp_link(validated_phone, name)
 
         return {
@@ -498,6 +508,7 @@ class GoogleMapsScraper:
             "has_website": has_website,
             "website": website if website else "None (Opportunity)",
             "profile_status": profile_status,
+            "pincode": pincode if pincode else "N/A",
             "address": address if address else "Not Listed",
             "rating": rating,
             "reviews_count": reviews_count,
