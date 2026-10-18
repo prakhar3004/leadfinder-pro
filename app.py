@@ -14,7 +14,6 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 import io
-import pandas as pd
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
