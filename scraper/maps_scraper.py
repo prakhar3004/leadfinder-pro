@@ -67,17 +67,39 @@ class GoogleMapsScraper:
             "message": f"Targeting verified businesses for: '{queries[0]}'..."
         }
 
+        DEFAULT_BROWSERLESS_TOKEN = "2VSpnp8oEM9PZ5O867880b510ac8cdf47f96c0f7fd09ff31e"
+
         async with async_playwright() as p:
             browser: Optional[Browser] = None
             try:
+                # Resolve remote cloud browser if configured or in serverless environment
+                browserless_token = os.environ.get("BROWSERLESS_TOKEN") or os.environ.get("BROWSERLESS_API_KEY")
                 browserless_ws = os.environ.get("BROWSERLESS_WS") or os.environ.get("CDP_URL")
+
+                if not browserless_ws and browserless_token:
+                    browserless_ws = f"wss://chrome.browserless.io?token={browserless_token.strip()}"
+
+                # If running on Vercel / AWS Lambda / cloud serverless, prioritize Browserless
+                is_serverless = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+                if is_serverless and not browserless_ws:
+                    browserless_ws = f"wss://chrome.browserless.io?token={DEFAULT_BROWSERLESS_TOKEN}"
+
                 if browserless_ws:
                     yield {
                         "type": "status",
-                        "message": "Connecting to remote cloud browser (Browserless)..."
+                        "message": "Connecting to cloud browser (Browserless.io)..."
                     }
-                    browser = await p.chromium.connect_over_cdp(browserless_ws)
-                else:
+                    try:
+                        browser = await p.chromium.connect_over_cdp(browserless_ws, timeout=30000)
+                    except Exception as conn_err:
+                        yield {
+                            "type": "status",
+                            "message": f"Browserless connection note: {str(conn_err)}. Falling back to local browser..."
+                        }
+                        browser = None
+
+                # Fallback to local chromium if not connected
+                if not browser:
                     try:
                         browser = await p.chromium.launch(
                             headless=self.headless,
@@ -92,18 +114,15 @@ class GoogleMapsScraper:
                     except Exception as launch_err:
                         err_str = str(launch_err)
                         if "Executable doesn't exist" in err_str or "playwright install" in err_str:
+                            # Auto-fallback to Browserless token
                             yield {
-                                "type": "error",
-                                "message": (
-                                    "Serverless Environment Detected (Vercel/Lambda): "
-                                    "Chromium browser binary is not available in Vercel Serverless. "
-                                    "Vercel serverless has a 50MB-250MB limit and no browser binaries. "
-                                    "To run live: Deploy on Render.com / Railway (Docker container) "
-                                    "or set BROWSERLESS_WS in environment variables."
-                                )
+                                "type": "status",
+                                "message": "Local Chromium not installed. Connecting to cloud browser..."
                             }
-                            return
-                        raise launch_err
+                            cloud_ws = f"wss://chrome.browserless.io?token={DEFAULT_BROWSERLESS_TOKEN}"
+                            browser = await p.chromium.connect_over_cdp(cloud_ws, timeout=30000)
+                        else:
+                            raise launch_err
                 
                 context: BrowserContext = await browser.new_context(
                     user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
