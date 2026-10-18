@@ -1,0 +1,14 @@
+.venv
+venv
+ENV
+env
+__pycache__
+*.pyc
+*.pyo
+.git
+.gitignore
+.vercel
+*.xlsx
+*.csv
+*.log
+run.bat

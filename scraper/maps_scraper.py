@@ -1,3 +1,4 @@
+import os
 import asyncio
 import urllib.parse
 import re
@@ -69,16 +70,40 @@ class GoogleMapsScraper:
         async with async_playwright() as p:
             browser: Optional[Browser] = None
             try:
-                browser = await p.chromium.launch(
-                    headless=self.headless,
-                    args=[
-                        "--disable-blink-features=AutomationControlled",
-                        "--no-sandbox",
-                        "--disable-setuid-sandbox",
-                        "--disable-dev-shm-usage",
-                        "--window-size=1440,960"
-                    ]
-                )
+                browserless_ws = os.environ.get("BROWSERLESS_WS") or os.environ.get("CDP_URL")
+                if browserless_ws:
+                    yield {
+                        "type": "status",
+                        "message": "Connecting to remote cloud browser (Browserless)..."
+                    }
+                    browser = await p.chromium.connect_over_cdp(browserless_ws)
+                else:
+                    try:
+                        browser = await p.chromium.launch(
+                            headless=self.headless,
+                            args=[
+                                "--disable-blink-features=AutomationControlled",
+                                "--no-sandbox",
+                                "--disable-setuid-sandbox",
+                                "--disable-dev-shm-usage",
+                                "--window-size=1440,960"
+                            ]
+                        )
+                    except Exception as launch_err:
+                        err_str = str(launch_err)
+                        if "Executable doesn't exist" in err_str or "playwright install" in err_str:
+                            yield {
+                                "type": "error",
+                                "message": (
+                                    "Serverless Environment Detected (Vercel/Lambda): "
+                                    "Chromium browser binary is not available in Vercel Serverless. "
+                                    "Vercel serverless has a 50MB-250MB limit and no browser binaries. "
+                                    "To run live: Deploy on Render.com / Railway (Docker container) "
+                                    "or set BROWSERLESS_WS in environment variables."
+                                )
+                            }
+                            return
+                        raise launch_err
                 
                 context: BrowserContext = await browser.new_context(
                     user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",

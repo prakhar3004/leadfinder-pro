@@ -25,3 +25,5 @@ test_*.py
 # Exports
 *.xlsx
 *.csv
+
+.vercel
