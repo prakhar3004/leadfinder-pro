@@ -1,0 +1,27 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Playwright browser binaries
+.local-browsers/
+
+# Vercel
+.vercel/
+
+# Logs & temp
+*.log
+scratch/
+test_*.py
+
+# Exports
+*.xlsx
+*.csv

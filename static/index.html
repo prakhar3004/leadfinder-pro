@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>LeadFinder Pro Enterprise - PWA & Google Sheets Exporter</title>
+  <meta name="description" content="Discover global manufacturers, local stores, verified mobile numbers, and emails with direct 1-click Google Sheets export.">
+  
+  <!-- PWA Manifest & App Capability -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="LeadFinder">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/static/icons/icon-512.png">
+
+  <!-- Modern Fonts: Plus Jakarta Sans, Outfit, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Modern Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- PWA Offline Notice (Hidden unless offline) -->
+  <div id="offlineNotice" class="offline-banner" style="display: none;">
+    <i data-lucide="wifi-off"></i>
+    <span>You are currently offline. Viewing cached leads.</span>
+  </div>
+
+  <div class="container">
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="brand-icon">
+          <i data-lucide="compass" class="icon-brand"></i>
+        </div>
+        <div class="brand-text-group">
+          <div class="brand-title">LeadFinder <span class="brand-accent">Pro</span></div>
+          <div class="brand-subtitle">Google Sheets & Verified Intelligence</div>
+        </div>
+        <span class="brand-tag">PWA v2.0</span>
+      </div>
+
+      <div class="nav-actions">
+        <!-- PWA Install Button (shown when installable) -->
+        <button type="button" id="installPwaBtn" class="btn-install-pwa" style="display: none;" title="Install LeadFinder Pro on your device">
+          <i data-lucide="download-cloud" style="width: 15px; height: 15px;"></i>
+          <span>Install App</span>
+        </button>
+
+        <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Light / Dark Mode">
+          <span id="themeToggleIcon">🌙</span>
+          <span id="themeToggleText">Dark</span>
+        </button>
+
+        <button type="button" id="openTaxonomyBtn" class="btn-secondary nav-tax-btn" title="Browse categories and hubs">
+          <i data-lucide="layers" style="width: 14px; height: 14px;"></i>
+          <span>100+ Categories</span>
+        </button>
+
+        <div class="status-badge" id="engineStatusBadge">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="engineStatusText">Engine Ready</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Search Card -->
+    <section class="glass-card main-search-card">
+      <form id="scrapeForm" onsubmit="return false;">
+        <div class="search-grid">
+          <!-- Business Niche -->
+          <div class="form-group">
+            <label class="form-label" for="businessTypeInput">
+              <span id="businessLabelText">💼 Business Niche / Category</span>
+              <span class="label-link" id="browseNicheLink">Explore Niches</span>
+            </label>
+            <div class="input-wrapper">
+              <i data-lucide="briefcase" class="input-icon-svg"></i>
+              <input 
+                type="text" 
+                id="businessTypeInput" 
+                class="form-control" 
+                placeholder="e.g. Textile Manufacturer, Dentist, Kirana Store..." 
+                required
+                autocomplete="off"
+              >
+            </div>
+          </div>
+
+          <!-- Location -->
+          <div class="form-group">
+            <label class="form-label" for="locationInput">
+              <span>📍 City / Region / Industrial Area</span>
+              <span class="label-link" id="browseLocationLink">Top Hubs</span>
+            </label>
+            <div class="input-wrapper">
+              <i data-lucide="map-pin" class="input-icon-svg"></i>
+              <input 
+                type="text" 
+                id="locationInput" 
+                class="form-control" 
+                placeholder="e.g. Kanpur, Jaipur, Delhi NCR, New York..." 
+                required
+                autocomplete="off"
+              >
+            </div>
+          </div>
+
+          <!-- Max Leads Count -->
+          <div class="form-group form-group-target">
+            <label class="form-label" for="maxResultsSelect">
+              <span>🎯 Target Leads</span>
+            </label>
+            <div class="input-wrapper">
+              <i data-lucide="target" class="input-icon-svg"></i>
+              <select id="maxResultsSelect" class="form-control select-control">
+                <option value="10">10 Leads</option>
+                <option value="20" selected>20 Leads</option>
+                <option value="40">40 Leads</option>
+                <option value="60">60 Leads</option>
+                <option value="100">100 Leads</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="form-group form-group-actions">
+            <label class="form-label desktop-only-label">&nbsp;</label>
+            <div class="action-btn-row">
+              <button type="button" id="startBtn" class="btn-primary">
+                <i data-lucide="search" style="width: 17px; height: 17px;"></i>
+                <span>Find Leads</span>
+              </button>
+              <button type="button" id="stopBtn" class="btn-danger" style="display: none;" title="Stop Search">
+                <i data-lucide="square" style="width: 15px; height: 15px;"></i>
+                <span>Stop</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- KPI Analytics Strip -->
+    <section class="stats-grid" id="statsSection">
+      <div class="stat-card stat-total">
+        <div class="stat-icon blue">
+          <i data-lucide="users" style="width: 22px; height: 22px;"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-val" id="statTotalLeads">0</div>
+          <div class="stat-title">Verified Unique Leads</div>
+          <div class="stat-sub" id="statTargetSub">Target: 0</div>
+        </div>
+      </div>
+
+      <div class="stat-card highlight">
+        <div class="stat-icon red">
+          <i data-lucide="flame" style="width: 22px; height: 22px;"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-val" id="statNoWebsite">0</div>
+          <div class="stat-title">No Website (Hot Pitch)</div>
+          <div class="stat-sub" id="statNoWebPct">Ready for Pitch</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <i data-lucide="message-circle" style="width: 22px; height: 22px;"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-val" id="statWhatsApp">0</div>
+          <div class="stat-title">WhatsApp Ready</div>
+          <div class="stat-sub">1-Click Direct Chat</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon purple">
+          <i data-lucide="mail" style="width: 22px; height: 22px;"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-val" id="statEmail">0</div>
+          <div class="stat-title">Emails Captured</div>
+          <div class="stat-sub">Verified Business Email</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon amber">
+          <i data-lucide="alert-triangle" style="width: 22px; height: 22px;"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-val" id="statUnclaimed">0</div>
+          <div class="stat-title">Unclaimed Profiles</div>
+          <div class="stat-sub">GMB Setup Pitch</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Activity Console -->
+    <section class="terminal-wrapper" id="terminalSection" style="display: none;">
+      <div class="terminal-header">
+        <div class="terminal-controls">
+          <span class="t-dot t-red"></span>
+          <span class="t-dot t-yellow"></span>
+          <span class="t-dot t-green"></span>
+          <span style="margin-left: 8px;">Scraper Real-Time Console</span>
+        </div>
+        <div id="terminalStatusText">Live Feed Active</div>
+      </div>
+      <div class="terminal-body" id="terminalBody"></div>
+    </section>
+
+    <!-- Leads Table Card -->
+    <section class="glass-card table-card">
+      <div class="table-toolbar">
+        <!-- Filter Dropdown -->
+        <div class="table-filter-group">
+          <div class="filter-dropdown-container">
+            <i data-lucide="filter" class="filter-dropdown-icon"></i>
+            <select id="filterDropdown" class="form-control filter-dropdown-select" title="Filter leads">
+              <option value="all">📋 All Leads (0)</option>
+              <option value="no-website">🔥 No Website / Hot Pitch (0)</option>
+              <option value="whatsapp">💬 WhatsApp Direct (0)</option>
+              <option value="email">✉️ With Verified Email (0)</option>
+              <option value="unclaimed">🛡️ Unclaimed GMB Profiles (0)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Search input inside table toolbar -->
+        <div class="table-search-box">
+          <i data-lucide="search" class="search-box-icon"></i>
+          <input 
+            type="text" 
+            id="tableSearchInput" 
+            class="form-control" 
+            placeholder="Search leads table..." 
+          >
+        </div>
+
+        <!-- Export Actions & Google Sheets -->
+        <div class="export-actions">
+          <!-- Dedicated Google Sheets Button -->
+          <button type="button" id="openGSheetsBtn" class="btn-gsheet" title="Copy table to clipboard and open blank Google Sheet">
+            <i data-lucide="file-spreadsheet" style="width: 16px; height: 16px;"></i>
+            <span>Open in Google Sheets</span>
+          </button>
+          <button type="button" id="copyPhonesBtn" class="btn-secondary" title="Copy verified mobile numbers">
+            <i data-lucide="phone-call" style="width: 14px; height: 14px;"></i>
+            <span>Copy Phones</span>
+          </button>
+          <button type="button" id="copyEmailsBtn" class="btn-secondary" title="Copy verified emails">
+            <i data-lucide="mail" style="width: 14px; height: 14px;"></i>
+            <span>Copy Emails</span>
+          </button>
+          <a href="#" id="exportExcelBtn" class="btn-secondary excel" title="Download Excel (.xlsx)">
+            <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+            <span>Excel</span>
+          </a>
+          <a href="#" id="exportCsvBtn" class="btn-secondary" title="Download CSV">
+            <i data-lucide="file-text" style="width: 14px; height: 14px;"></i>
+            <span>CSV</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="leads-table" id="leadsTable">
+          <thead>
+            <tr>
+              <th style="width: 44px;">#</th>
+              <th>Business Name & Category</th>
+              <th>Verified Contact & WhatsApp</th>
+              <th>Email Address</th>
+              <th>Website Status</th>
+              <th>Profile Status</th>
+              <th>Rating & Reviews</th>
+              <th>Address</th>
+              <th style="text-align: center;">Maps</th>
+            </tr>
+          </thead>
+          <tbody id="leadsTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">
+          <i data-lucide="search-check" style="width: 52px; height: 52px; opacity: 0.6; color: var(--accent-blue);"></i>
+        </div>
+        <div class="empty-title">Ready for Verified Business Leads</div>
+        <p class="empty-desc">Enter any location and business niche above, then click <b>Find Leads</b> to extract genuine phone numbers, emails, social profiles, and website status.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal for Taxonomy & Category Browser -->
+  <div class="modal-overlay" id="taxonomyModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="compass" style="width: 20px; height: 20px; color: var(--accent-blue);"></i>
+          <span id="modalHeaderTitle">Explore Top Hubs & Niches</span>
+        </div>
+        <button type="button" class="modal-close" id="closeTaxonomyBtn">&times;</button>
+      </div>
+
+      <!-- Navigation Tabs: Locations vs Categories -->
+      <div class="modal-nav-tabs">
+        <button type="button" class="modal-tab-btn active" id="modalTabLocations">
+          <i data-lucide="map-pin" style="width: 15px; height: 15px;"></i>
+          <span>📍 Top Hubs & Locations</span>
+        </button>
+        <button type="button" class="modal-tab-btn" id="modalTabCategories">
+          <i data-lucide="briefcase" style="width: 15px; height: 15px;"></i>
+          <span>💼 Business Categories (100+)</span>
+        </button>
+      </div>
+
+      <div style="padding: 12px 24px; border-bottom: 1px solid var(--border-subtle);">
+        <input type="text" id="taxonomySearch" class="form-control" placeholder="Search cities, states, industrial hubs or niches..." style="padding-left: 14px;">
+      </div>
+      <div class="modal-body" id="taxonomyModalBody"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toastMessage">
+    <span id="toastIcon">ℹ️</span>
+    <span id="toastText">Message</span>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
